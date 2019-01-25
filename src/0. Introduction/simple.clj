@@ -61,6 +61,11 @@
       (recur (inc i)
              (*' result i)))))
 
+(defn !3
+  "Returns the factorial of n. Uses sequence API."
+  [n]
+  (reduce *' (range 1 (inc n))))
+
 (deftest test-f2c
   (is (= 100.0 (f2c 212.0)))
   (is (= 0.0 (f2c 32.0)))
