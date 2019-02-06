@@ -56,4 +56,60 @@
   Uses the sequence API."
   [n]
   ;;; To be defined
-  nil)
+  (first
+    (nth
+      (iterate
+        (fn [[a b]]
+          [b (+' a b)])
+        [0 1])
+      n)))
+
+(defn insert
+  "Returns a list with the same elements as lst
+  (which must be sorted) but inserting n in its
+  corresponding place."
+  [n lst]
+  (let [[a b] (split-with #(> n %) lst)]
+    (concat a (list n) b)))
+
+(defn my-sort
+  "Sorts the elements of lst in ascending order.
+  Uses the insertion sort algorithm."
+  [lst]
+  (loop [lst lst
+         result ()]
+    (if (empty? lst)
+      result
+      (recur (rest lst)
+             (insert (first lst) result)))))
+
+(defn qsort
+  "Sorts the elements of lst in ascending order.
+  Uses the quick sort algorithm."
+  [lst]
+  (if (empty? lst)
+    ()
+    (let [fst     (first lst)
+          rst     (rest lst)
+          smaller (filter #(< % fst) rst)
+          bigger  (remove #(< % fst) rst)]
+      (concat (qsort smaller)
+              (list fst)
+              (qsort bigger)))))
+
+(defn primer-factors
+  "Returns a list containing the prime factors
+  of n in ascending order. Assumes that n > 0."
+  [n]
+  (loop [q      n
+         d      2
+         result ()]
+    (if (> d q)
+      (reverse result)
+      (if (zero? (rem q d))
+        (recur (quot q d)
+               d
+               (cons d result))
+        (recur q
+               (inc d)
+               result)))))
