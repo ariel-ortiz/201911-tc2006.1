@@ -15,7 +15,7 @@
   nil)
 
 ;==========================================================
-(deftest test-median
+(deftest test-mode
   (is (nil? (mode [])))
   (is (= 2
          (mode [2])))
