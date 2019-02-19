@@ -1,5 +1,5 @@
 ;==========================================================
-; Type your student ID and name here.
+; Solution.
 ;==========================================================
 
 (require '[clojure.test :refer [deftest is run-tests]])
@@ -10,7 +10,16 @@
   and returns its median. If lst is an empty sequence, 
   returns nil."
   [lst]
-  nil)
+  (if (empty? lst)
+    nil
+    (let [sorted-lst (sort lst)
+          mid        (quot (count lst) 2)]
+      (if (even? (count lst))
+        (/ (+ (nth sorted-lst mid)
+              (nth sorted-lst (dec mid)))
+           2)
+        (nth sorted-lst mid)))))
+
 
 ;==========================================================
 (deftest test-median

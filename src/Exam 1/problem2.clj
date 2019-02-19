@@ -1,5 +1,5 @@
 ;==========================================================
-; Type your student ID and name here.
+; Solution.
 ;==========================================================
 
 (require '[clojure.test :refer [deftest is run-tests]])
@@ -12,7 +12,18 @@
   a vector with all these numbers in ascending order. If 
   lst is an empty sequence, it returns nil."
   [lst]
-  nil)
+  (if (empty? lst)
+    nil
+    (let [sorted (sort-by (comp - count)
+                          (partition-by identity (sort lst)))
+          size (count (first sorted))
+          result (->> sorted
+                      (take-while #(= size (count %)))
+                      (map first)
+                      vec)]
+      (if (= 1 (count result))
+        (first result)
+        result))))
 
 ;==========================================================
 (deftest test-mode
