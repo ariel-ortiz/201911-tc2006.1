@@ -1,6 +1,7 @@
 ; Implementation of the Metacircular Evaluator
 ; (a.k.a. Lisp interpreter in Clojure).
 
+(require '[clojure.test :refer [deftest is run-tests]])
 (import 'clojure.lang.IFn)
 
 (declare $eval)
@@ -10,7 +11,7 @@
 ;; interface which provides instances of the type the
 ;; ability to be called using the apply function:
 ;;
-;;     (def c (->Closure {'a 5, '+ +} '(x) '(+ a x)))
+;;     (def c (->Closure (atom {'a 5, '+ +}) '(x) '(+ a x)))
 ;;     => #'user/c
 ;;
 ;;     (apply c '(10))
@@ -23,7 +24,7 @@
 
   (applyTo [self args]
     ($eval body
-           (merge env (zipmap params args)))))
+           (merge @env (zipmap params args)))))
 
 ;;; Helper functions
 
@@ -41,7 +42,7 @@
 
 ;;---------------------------------------------------------
 (defn $eval
-  "Evaluates expr using the bindings contained in the env map."
+  "$evals expr using the bindings contained in the env map."
   [expr env]
 
   (cond
@@ -69,12 +70,183 @@
         ($eval (fourth expr) env))
 
       lambda
-      (->Closure env (second expr) (third expr))
+      (->Closure (atom env) (second expr) (third expr))
+
+      label
+      (let [closure ($eval (third expr) env)]
+        (swap! (.env closure)
+               #(assoc % (second expr) closure))
+        closure)
 
       ; Ordinary function application
       (apply ($eval (first expr) env)
              (map #($eval % env) (rest expr))))
 
-    ; Anything that is not a symbol or a list evaluates to itself.
+    ; Anything that is not a symbol or a list $evals to itself.
     :else
     expr))
+
+;==========================================================
+(deftest test-var-ref
+  (is (= 15 ($eval 'c
+                   {'a 4, 'b 8, 'c 15})))
+  (is (thrown? RuntimeException
+        ($eval 'x
+               {'a 4, 'b 8, 'c 15}))))
+
+;==========================================================
+(deftest test-itself
+  (is (= 42 ($eval 42 {})))
+  (is (= true ($eval true {})))
+  (is (= false ($eval false {})))
+  (is (= nil ($eval nil {})))
+  (is (= "hello" ($eval "hello" {}))))
+
+;==========================================================
+(deftest test-empty-list
+  (is (= () ($eval () {}))))
+
+;==========================================================
+(deftest test-quote
+  (is (= 'a
+        ($eval '(quote a) {})))
+  (is (= '(1 2 3)
+        ($eval '(quote (1 2 3)) {})))
+  (is (= '42 ($eval '(quote 42) {}))))
+
+;==========================================================
+(deftest test-if
+  (is (= 1 ($eval '(if true 1 2) {})))
+  (is (= 2 ($eval '(if false 1 2) {}))))
+
+;==========================================================
+(deftest test-function-invocation
+  (is (= 3
+        ($eval '(f 1 2)
+         {'f +})))
+  (is (= 'a
+        ($eval '(g (quote (a b c d e)))
+         {'g first})))
+  (is (= '(a b c)
+        ($eval '(cons x y)
+         {'cons cons, 'x 'a, 'y '(b c)})))
+  (is (= 55
+        ($eval '(+ 1 2 3 4 5 6 7 8 9 10)
+         {'+ +})))
+  (is (= '(a b c)
+        ($eval '(apply cons (quote (a (b c))))
+         {'apply apply, 'cons cons}))))
+
+;==========================================================
+(deftest test-lambda
+  (let [c ($eval '(lambda (x)
+                    (* x 2))
+            {'* *})]
+    (is (instance? Closure c))
+    (is (= @(.env c) {'* *}))
+    (is (= (.params c) '(x)))
+    (is (= (.body c) '(* x 2)))
+    (is (= 42 (apply c '(21)))))
+  (is (= 8
+        ($eval '((lambda (f x) (f (f (f x))))
+                 (lambda (x) (* x 2))
+                 1)
+         {'* *}))))
+
+;==========================================================
+(deftest test-label
+  (is (= '(a a b b c c)
+        ($eval
+          '((label dup (lambda (lst)
+                         (if (eq lst ())
+                           ()
+                           (cons (car lst)
+                                 (cons (car lst)
+                                       (dup (cdr lst)))))))
+            (quote (a b c)))
+          {'eq   =
+           'cons cons
+           'car  first
+           'cdr  rest})))
+  (is (= '(1 4 9 16)
+        ($eval
+          '((label mapcar (lambda (fun lst)
+                            (if (eq lst ())
+                              ()
+                              (cons (fun (car lst))
+                                    (mapcar fun (cdr lst))))))
+            (lambda (x) (* x x))
+            (quote (1 2 3 4)))
+          {'eq   =
+           'cons cons
+           'car  first
+           'cdr  rest
+           '*    *}))))
+
+;==========================================================
+;;; Remove comments to carry out the following tests.
+;(deftest test-dotimes
+;  (is (= ""
+;         (with-out-str ($eval '(dotimes (x 0)
+;                                 (println x))
+;                              {'println println}))))
+;  (is (= "0123456789"
+;         (with-out-str ($eval '(dotimes (x 10)
+;                                 (pr x))
+;                              {'pr pr}))))
+;  (is (= "Line 0\nLine 1\nLine 2\nLine 3\n"
+;         (with-out-str ($eval '(dotimes (i (+ 2 2))
+;                                 (println "Line" i))
+;                              {'println println, '+ +}))))
+;  (is (= "1-4-9-16-25-36-49-64-81-100-"
+;         (with-out-str ($eval '(dotimes (some-var (* 2 5))
+;                                  (printf "%d-"
+;                                          ((lambda (x) (* x x))
+;                                           (inc some-var))))
+;                              {'printf printf, '* *, 'inc inc}))))
+;  (is (= (str "**************************************************"
+;              "**************************************************")
+;         (with-out-str ($eval '(dotimes (mxyzptlk (* 2 2 5 5))
+;                                 (print "*"))
+;                              {'print print, '* *})))))
+
+;==========================================================
+;;; Remove comments to carry out the following tests.
+;(deftest test-let
+;  (is (= 7
+;        ($eval '(let (a 7) a) {})))
+;  (is (= 42
+;        ($eval '(let (x 6)
+;                  (* 7 x))
+;          {'* *})))
+;  (is (= 111
+;        ($eval '(let (x (* 2 5))
+;                  (let (y (+ 1 x))
+;                    (+ 1 (* y x))))
+;          {'+ +
+;           '* *})))
+;  (is (= 60
+;        ($eval '((lambda (x y)
+;                   (let (y (+ 1 y))
+;                     (* x y)))
+;                  10
+;                  5)
+;          {'* *
+;           '+ +})))
+;  (is (= '(a b c d)
+;        ($eval '(let (one (quote (c d)))
+;                  (let (two (cons (quote b) one))
+;                    (let (three (cons (quote a) two))
+;                      three)))
+;          {'cons cons})))
+;  (is (= 8
+;        ($eval '(((lambda (x y)
+;                    (let (z (let (r) (* x y)) r)
+;                      (lambda (w)
+;                        (let (t (+ x (let (a y) a) z w))
+;                          (let (t t) t))))) 1 2) 3)
+;          {'* *
+;           '+ +}))))
+
+;==========================================================
+(run-tests)
