@@ -194,7 +194,8 @@
 ;         (with-out-str ($eval '(dotimes (x 10)
 ;                                 (pr x))
 ;                              {'pr pr}))))
-;  (is (= "Line 0\nLine 1\nLine 2\nLine 3\n"
+;  (is (= (let [nl (System/lineSeparator)]
+;           (str "Line 0" nl "Line 1" nl "Line 2" nl "Line 3" nl))
 ;         (with-out-str ($eval '(dotimes (i (+ 2 2))
 ;                                 (println "Line" i))
 ;                              {'println println, '+ +}))))
