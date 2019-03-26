@@ -22,7 +22,11 @@
 (defmacro $and
   "Returns true if x and y are true, false
   otherwise. Uses short circuit evaluation."
-  [x y]
-  `(if ~x
-     ~y
-     false))
+  ([] true)
+  ([x] x)
+  ([x & y]
+   `(let [t# ~x]
+      (if t#
+        ($and ~@y)
+        t#))))
+
