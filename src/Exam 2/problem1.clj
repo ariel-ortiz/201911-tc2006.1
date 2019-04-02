@@ -84,7 +84,10 @@
       (let [closure ($eval (third expr) env)]
         (swap! (.env closure)
                #(assoc % (second expr) closure))
-        closure)      
+        closure)
+
+      do
+      (last (map #($eval % env) (rest expr)))
 
       ; Ordinary function application
       (apply ($eval (first expr) env)

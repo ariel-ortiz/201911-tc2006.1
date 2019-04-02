@@ -47,6 +47,14 @@
   [lst]
   (nth lst 3))
 
+(defn cond->if
+  [args]
+  (if (empty? args)
+    nil
+    (list 'if (first args)
+            (second args)
+            (cond->if (rest (rest args))))))
+
 ;;---------------------------------------------------------
 (defn $eval
   "Evaluates expr using the bindings contained in the env
@@ -84,7 +92,10 @@
       (let [closure ($eval (third expr) env)]
         (swap! (.env closure)
                #(assoc % (second expr) closure))
-        closure)      
+        closure)
+
+      cond
+      ($eval (cond->if (rest expr)) env)
 
       ; Ordinary function application
       (apply ($eval (first expr) env)
