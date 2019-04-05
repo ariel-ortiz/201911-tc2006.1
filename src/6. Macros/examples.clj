@@ -30,3 +30,24 @@
         ($and ~@y)
         t#))))
 
+(defn split-start-end
+  [lst start end]
+  (->>
+    lst
+    (drop-while #(not= % start))
+    rest
+    (take-while #(not= % end))))
+
+(defmacro IF
+  "Provides a conditional statement that is
+  syntactically a bit more similar to those
+  found in languages like Pascal or Fortran.
+  It has the following form:
+
+    (IF condition
+      :THEN exp1 exp2 ...
+      :ELSE exp3 exp4 ...)"
+  [condition & args]
+  `(if ~condition
+     (do ~@(split-start-end args :THEN :ELSE))
+     (do ~@(split-start-end args :ELSE :THEN))))
