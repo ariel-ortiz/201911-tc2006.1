@@ -45,3 +45,28 @@
       [(fathero gf _x)
        (mothero _x p)])))
 
+(defn sistero
+  "Logical function that unifies if s is a sister of p."
+  [s p]
+  (logic/fresh [_g _f _m]
+    (logic/!= s p)
+    (character s :female _f _m)
+    (character p _g _f _m)))
+
+(defn brothero
+  "Logical function that unifies if b is a brother of p."
+  [b p]
+  (logic/fresh [_g _f _m]
+    (logic/!= b p)
+    (character b :male _f _m)
+    (character p _g _f _m)))
+
+(defn aunto
+  "Logical function that unifies if a is aunt of p."
+  [a p]
+  (logic/fresh [_x]
+    (logic/conde
+      [(fathero _x p)
+       (sistero a _x)]
+      [(mothero _x p)
+       (sistero a _x)])))
