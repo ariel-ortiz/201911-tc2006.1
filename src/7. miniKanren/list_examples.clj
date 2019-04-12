@@ -10,7 +10,7 @@
 
 (logic/defne dupo
   "Logical function that succeeds if every element of
-  lst is duplicates in result."
+  lst is duplicated in result."
   [lst result]
   ([[] []])
   ([[head . tail] [head head . temp]]
