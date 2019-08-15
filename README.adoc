@@ -10,7 +10,7 @@ You can inspect the files directly through this site, or you can use `git` to ob
  
 2. Clone this repository. Type at the terminal:
     
-    git clone https://github.com/ariel-ortiz/201813-tc2006.2.git tc2006
+    git clone https://github.com/ariel-ortiz/201911-tc2006.1.git tc2006
     
  3. Change your current working directory to `tc2006`:
 
